@@ -1,0 +1,36 @@
+#!/bin/bash
+
+if [ $# -eq 0 ]; then
+    echo "Veuillez spécifier un nom de base de données en tant qu'argument."
+    exit 1
+fi
+
+echo "Installer les paquets nécessaires"
+sudo apt-get update
+sudo apt-get -y install apache2 php8.1 php8.1-gd php8.1-mysql php8.1-pdo-mysql mysql-server git
+echo "Télécharger DVWA dans le répertoire /var/www/html/"
+
+if [ -d "/var/www/html/DVWA" ]; then
+  sudo rm -rf /var/www/html/DVWA
+fi
+
+cd /var/www/html/
+sudo git clone https://github.com/ethicalhack3r/DVWA.git
+sudo chown -R www-data:www-data /var/www/html/
+
+echo "Configurer la base de données MySQL"
+sudo mysql -u root -p << EOF
+CREATE DATABASE $1;
+CREATE USER '$1'@'localhost' IDENTIFIED BY 'p@ssw0rd';
+GRANT ALL ON $1.* TO '$1'@'localhost';
+EOF
+
+echo "Configurer DVWA"
+sudo cp /var/www/html/DVWA/config/config.inc.php.dist /var/www/html/DVWA/config/config.inc.php
+sudo sed -i "s/\$_DVWA\['db_password'\] = ''/\$_DVWA\['db_password'\] = 'p@ssw0rd'/" /var/www/html/DVWA/config/config.inc.php
+sudo sed -i "s/\$_DVWA\['db_database'\] = ''/\$_DVWA\['db_database'\] = '$1'/" /var/www/html/DVWA/config/config.inc.php
+sudo sed -i "s/allow_url_fopen = Off/allow_url_fopen = On/" /etc/php/8.1/apache2/php.ini
+sudo sed -i "s/allow_url_include = Off/allow_url_include = On/" /etc/php/8.1/apache2/php.ini
+
+echo "Redémarrer Apache"
+sudo systemctl restart apache2
