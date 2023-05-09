@@ -23,3 +23,7 @@ To deploy this project run
   sudo ./dvwa_deploy database_name
 ```
 
+## info supplémentaire
+
+the script only works on a server version (ubuntu server for example).
+Tested on kali, but without success
